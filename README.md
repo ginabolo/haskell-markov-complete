@@ -1,2 +1,2 @@
-# haskell-markov-complete
-CS 312 project: Haskell word and sentence completion
+# haskell-markov-weather-predict
+CS 312 project: Markov chain-based weather prediction implemented in Haskell
