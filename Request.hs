@@ -14,8 +14,13 @@ getWeatherForecast = do
     forecast <- getRawWeatherForecast
     return (parseWeatherForecast forecast)
 
+getWeatherForecastSummary :: IO [String]
+getWeatherForecastSummary = do
+    forecast <- getRawWeatherForecast
+    (extractSection "hourly" forecast)
+
 parseWeatherForecast :: String -> [String]
-parseWeatherForecast forecast = removeEmpty (removeBrackets (map trimWhitespace (getLines (extractSection "daily" forecast))))
+parseWeatherForecast forecast = (removeEmpty (removeBrackets (map trimAll (getLines (extractSection "hourly" forecast)))))
 
 findSection :: String -> String -> String -> Char -> String
 findSection sectionName text delimiter openingBracketType = findSectionHelper ((surroundInQuotes sectionName) ++ delimiter ++ [openingBracketType]) text ""
@@ -42,12 +47,10 @@ saveWeatherForecast :: [String] -> FilePath -> IO ()
 saveWeatherForecast forecast file = do
     writeFile file (foldr (++) "" (map (\line -> line ++ ['\n']) forecast))
 
-loadWeatherForecast :: FilePath -> IO String
+loadWeatherForecast :: FilePath -> IO [String]
 loadWeatherForecast file = do
     forecast <- readFile file
-    return forecast
-
--- getBlocks
+    return (getLines forecast)
 
 getBlock :: String -> String
 getBlock text = extractSectionParameterized "" text "" '{' '}'
@@ -67,20 +70,21 @@ trimFrontWhitespace (' ':remaining) = trimFrontWhitespace remaining
 trimFrontWhitespace ('\t':remaining) = trimFrontWhitespace remaining
 trimFrontWhitespace remaining = remaining
 
---trimFrontIf :: String -> (Char -> Bool) -> String
-trimFrontIf predicate "" = ""
-trimFrontIf predicate (start:remaining) = if (predicate start) then (trimFrontIf predicate remaining) else (start:remaining)
+--trimIfFront :: String -> (Char -> Bool) -> String
+trimIfFront predicate "" = ""
+trimIfFront predicate (start:remaining) = if (predicate start) then (trimIfFront predicate remaining) else (start:remaining)
 
---trimEndIf :: String -> String
-trimEndIf predicate text = trimEndIfHelper predicate text "" ""
+-- trimIf :: 
+trimIf predicate text = (trimIfEnd predicate (trimIfFront predicate text))
 
-trimIf predicate text = (trimEndIf predicate (trimFrontIf predicate text))
+--trimIfEnd :: String -> String
+trimIfEnd predicate text = trimIfEndHelper predicate text "" ""
 
 -- trimEndHelper ::
-trimEndIfHelper predicate text portion trimmed
+trimIfEndHelper predicate text portion trimmed
     | (text == "") = trimmed
-    | (predicate (head text)) = trimEndIfHelper predicate (tail text) (portion ++ [(head text)]) trimmed
-    | otherwise = trimEndIfHelper predicate (tail text) "" (trimmed ++ portion ++ [(head text)])
+    | (predicate (head text)) = trimIfEndHelper predicate (tail text) (portion ++ [(head text)]) trimmed
+    | otherwise = trimIfEndHelper predicate (tail text) "" (trimmed ++ portion ++ [(head text)])
 
 trimEndWhitespace :: String -> String
 trimEndWhitespace text = trimEndHelper text "" ""
@@ -95,7 +99,8 @@ trimEndHelper text portion trimmed
 trimWhitespace :: String -> String
 trimWhitespace = trimFrontWhitespace . trimEndWhitespace
 
---trimBrackets = trimBracketsFront . trimBracketsEnd
+trimBrackets :: String -> String
+trimBrackets = trimBracketsFront . trimBracketsEnd
 
 trimBracketsFront :: String -> String
 trimBracketsFront "" = ""
@@ -106,18 +111,41 @@ trimBracketsFront (']':remaining) = trimBracketsFront remaining
 trimBracketsFront ('(':remaining) = trimBracketsFront remaining
 trimBracketsFront (')':remaining) = trimBracketsFront remaining
 
---trimBracketsEnd :: String -> String
---trimBracketsEnd = 
+trimBracketsEnd :: String -> String
+trimBracketsEnd = trimIfEnd (\c -> c `elem` "{}[]()")
 
 trimCommas :: String -> String
-trimCommas "" = ""
---trimCommas 
+trimCommas text = (trimCommasEnd (trimCommasFront text))
 
---trimAll :: String -> String
---trimAll text = trimIf text (\e -> e `elem` '\t':" {}[](),")
+trimCommasFront :: String -> String
+trimCommasFront = trimIfFront (\c -> c == ',')
+
+trimCommasEnd :: String -> String
+trimCommasEnd = trimIfEnd (\c -> c == ',')
+
+trimQuotes :: String -> String
+trimQuotes = trimQuotesFront . trimQuotesEnd
+
+trimQuotesFront :: String -> String
+trimQuotesFront = trimIfFront (\c -> c == '\"')
+
+trimQuotesEnd :: String -> String
+trimQuotesEnd = trimIfEnd (\c -> c == '\"')
+
+trimAll :: String -> String
+trimAll text = (trimAllEnd (trimAllFront text))
+
+trimAllFront :: String -> String
+trimAllFront text = trimIfFront (\e -> e `elem` '\t':" {}[](),\"") text
+
+trimAllEnd :: String -> String
+trimAllEnd text = trimIfEnd (\e -> e `elem` '\t':" {}[](),\"") text
 
 surroundInQuotes :: String -> String
 surroundInQuotes text = "\"" ++ text ++ "\""
+
+removeQuotes :: String -> String
+removeQuotes = trimIf (\c -> c == '\"')
 
 removeEmpty :: [String] -> [String]
 removeEmpty = filter (\e -> (length e) > 0)
@@ -125,14 +153,19 @@ removeEmpty = filter (\e -> (length e) > 0)
 --removeBrackets :: [String] -> [String]
 removeBrackets = filter (\e -> e /= "{" && e /= "}" && e /= "[" && e /= "]" && e /= "(" && e /= ")")
 
---partitionKeyValue pairString = foldl (\(k, v) c -> if ((length v) > 0) then (k, v ++ [c]) else (if (c == ':') then (k, ":") else (k ++ [c], v))) "" pairString
+extractKeyValue :: String -> (String, String)
+extractKeyValue pairString = ((extractKey pairString), (extractValue pairString))
 
-extractKey pairString = foldr (\c acc -> if (c == ':') then "" else c:acc) "" pairString
+extractKey pairString = trimAll (foldr (\c acc -> if (c == ':') then "" else c:acc) "" pairString)
 
-extractValue pairString = if (trimmed == "") then "" else (tail trimmed) where trimmed = (trimFrontIf (\c -> c /= ':') pairString)
+extractValue pairString = if (trimmed == "") then "" else (trimAll (tail trimmed)) where trimmed = (trimIfFront (\c -> c /= ':') pairString)
 
+getAllMatching key = filter (\(k, v) -> k == key)
 
+--getEntry key mapping = 
 
 --getKeys keys mapping
 
 --getKey key mapping
+
+--data Mapping = Empty | (Key, Value)
