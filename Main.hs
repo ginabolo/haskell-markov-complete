@@ -24,7 +24,7 @@ displayAllDaysWithAttribute = do
     putStrLn "Enter a weather attribute: "
     attribute <- getLine
     putStrLn "All data for <" ++ attribute ++ ">: " 
-    putStrLn (GetAllMatching attribute)  
+    putStrLn (getAllMatching attribute)  
 
 nextPrediction data = markov data ++ (nextPrediction (markov data))
 predictWeather data iteration | iteration > 0 = markov data ++ (predictWeather (markov data) (iteration - 1))
