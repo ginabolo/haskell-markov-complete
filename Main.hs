@@ -26,6 +26,6 @@ displayAllDaysWithAttribute = do
     putStrLn "All data for <" ++ attribute ++ ">: " 
     putStrLn (getAllMatching attribute)  
 
-nextPrediction data = markov data ++ (nextPrediction (markov data))
-predictWeather data iteration | iteration > 0 = markov data ++ (predictWeather (markov data) (iteration - 1))
-                              | otherwise = data
+nextPrediction pred = markov pred ++ (nextPrediction (markov pred))
+predictWeather pred iteration | iteration > 0 = markov pred ++ (predictWeather (markov pred) (iteration - 1))
+                              | otherwise = pred
