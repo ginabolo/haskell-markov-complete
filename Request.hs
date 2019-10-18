@@ -2,6 +2,7 @@ module Request where
 import Network.HTTP
 import Network.Stream
 import Control.Concurrent
+import Data.List
 
 getRawWeatherForecast :: IO String
 getRawWeatherForecast = do
@@ -13,26 +14,49 @@ getRawWeatherForecast = do
 getWeatherForecast :: IO [String]
 getWeatherForecast = do
     forecast <- getRawWeatherForecast
-    return (parseWeatherForecast forecast)
+    return (parseWeatherForecast (getLines (extractSection "hourly" forecast)))
 
 getWeatherForecastSummary :: IO [String]
-getWeatherForecastSummary = do
-    putStrLn "Getting weather data from API..."
-    forecast <- getRawWeatherForecast
-    --saveWeatherForecast (getLines forecast) "raw.json"
-    putStrLn (show forecast)
-    putStrLn "Parsing weather data..."
-    putStrLn (show (parseWeatherForecast forecast))
-    let parsed = parseWeatherForecast forecast
+getWeatherForecastSummary = getWeatherForecastSummaryVerbose True
+
+getWeatherForecastQuick :: IO [String]
+getWeatherForecastQuick = do
+    response <- getRawWeatherForecast
+    return (map snd (getAllMatching "summary" (map extractKeyValue (parseWeatherForecast (filterWeatherForecast "summary" (getLines (extractSection "hourly" response)))))))
+
+getWeatherForecastSummaryVerbose :: Bool -> IO [String]
+getWeatherForecastSummaryVerbose verbose = do
+    if verbose then putStrLn "Getting weather data from API..." else putStr ""
+    --putStrLn "Getting weather data from API..."
+    response <- getRawWeatherForecast
+    let forecast = getLines (extractSection "hourly" response)
+    --saveWeatherForecast forecast "raw.json"
+    if verbose then putStrLn (show forecast) else putStr ""
+    
+    if verbose then putStrLn "Filtering forecast..." else putStr ""
+    if verbose then putStrLn (show (filterWeatherForecast "summary" forecast)) else putStr ""
+    let filtered = filterWeatherForecast "summary" forecast
+    
+    if verbose then putStrLn "Parsing weather data..." else putStr ""
+    if verbose then putStrLn (show (parseWeatherForecast filtered)) else putStr ""
+    let parsed = parseWeatherForecast filtered
     --saveWeatherForecast parsed "forecast.json"
-    putStrLn "Constructing forecast..."
-    putStrLn (show (map snd (getAllMatching "summary" (map extractKeyValue parsed))))
+
+    if verbose then putStrLn "Constructing forecast..." else putStr ""
+    if verbose then putStrLn (show (map snd (getAllMatching "summary" (map extractKeyValue parsed)))) else putStr ""
     let summary = map snd (getAllMatching "summary" (map extractKeyValue parsed))
     --saveWeatherForecast summary "summary.json"
     return summary
 
-parseWeatherForecast :: String -> [String]
-parseWeatherForecast forecast = (removeEmpty (removeBrackets (map trimAll (getLines (extractSection "hourly" forecast)))))
+parseWeatherForecast :: [String] -> [String]
+parseWeatherForecast forecast = (removeEmpty (removeBrackets (map trimAll forecast)))
+
+filterWeatherForecast :: String -> [String] -> [String]
+filterWeatherForecast key forecast = filter (\e -> isInfixOf key e) forecast
+
+isPrefix :: String -> String -> Bool
+isPrefix "" _ = True
+isPrefix prefix s = if (head prefix) /= (head s) then False else (isPrefix (tail prefix) (tail s))
 
 findSection :: String -> String -> String -> Char -> String
 findSection sectionName text delimiter openingBracketType = findSectionHelper ((surroundInQuotes sectionName) ++ delimiter ++ [openingBracketType]) text ""
@@ -70,7 +94,7 @@ getBlock :: String -> String
 getBlock text = extractSectionParameterized "" text "" '{' '}'
 
 getLines :: String -> [String]
-getLines text = getLinesHelper text ""
+getLines text = lines text
 
 getLinesHelper :: String -> String -> [String]
 getLinesHelper "" line = [line]
