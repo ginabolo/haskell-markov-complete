@@ -19,13 +19,12 @@ displayNextPrediction = do
     putStrLn "Tommorow's weather will be: "
     next <- nextPrediction weatherSummary
     putStrLn next
-    if ((queryWeather weatherSummary "rain") > (queryWeather weatherSummary "sunny")) then putStrLn "Its going to be rainy out. Make sure to bring an umbrella!" else putStrLn ""
-    if ((queryWeather weatherSummary "cloudy") > (queryWeather weatherSummary "sunny")) then putStrLn "Its going to be cloudy out, no need for sunscreen!" else putStrLn "Its going to be sunny out, bring some sunscreen!"
+    if (isInfixOf (last weatherSummary) "rain")) then putStrLn "Its going to be rainy out. Make sure to bring an umbrella!" else putStrLn ""
+    if (isInfixOf (last weatherSummary) "cloudy") then putStrLn "Its going to be cloudy out, no need for sunscreen!" else putStrLn ""
+    if (isInfixOf (last weatherSummary) "sunny") then putStrLn "Its going to be sunny out, bring some sunscreen!" else putStrLn ""
 
 displayWeeklyPrediction = do
     putStrLn ""
-
-queryWeather weatherSummary attr = (length (filter (\e -> isInfixOf attr e) weatherSummary))
 
 nextPrediction dataW = do
     next <- (markov dataW)
