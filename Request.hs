@@ -1,6 +1,8 @@
 module Request where
 import Network.HTTP
 import Network.Stream
+import Control.Concurrent
+import Data.List
 
 getRawWeatherForecast :: IO String
 getRawWeatherForecast = do
@@ -12,19 +14,54 @@ getRawWeatherForecast = do
 getWeatherForecast :: IO [String]
 getWeatherForecast = do
     forecast <- getRawWeatherForecast
-    return (parseWeatherForecast forecast)
+    return (parseWeatherForecast (getLines (extractSection "hourly" forecast)))
 
 getWeatherForecastSummary :: IO [String]
-getWeatherForecastSummary = do
-    forecast <- getRawWeatherForecast
-    (extractSection "hourly" forecast)
+getWeatherForecastSummary = getWeatherForecastSummaryVerbose True
 
-parseWeatherForecast :: String -> [String]
-parseWeatherForecast forecast = (removeEmpty (removeBrackets (map trimAll (getLines (extractSection "hourly" forecast)))))
+getWeatherForecastQuick :: IO [String]
+getWeatherForecastQuick = do
+    response <- getRawWeatherForecast
+    return (map snd (getAllMatching "summary" (map extractKeyValue (parseWeatherForecast (filterWeatherForecast "summary" (getLines (extractSection "hourly" response)))))))
+
+getWeatherForecastSummaryVerbose :: Bool -> IO [String]
+getWeatherForecastSummaryVerbose verbose = do
+    if verbose then putStrLn "Getting weather data from API..." else putStr ""
+    --putStrLn "Getting weather data from API..."
+    response <- getRawWeatherForecast
+    let forecast = getLines (extractSection "hourly" response)
+    --saveWeatherForecast forecast "raw.json"
+    if verbose then putStrLn (show forecast) else putStr ""
+    
+    if verbose then putStrLn "Filtering forecast..." else putStr ""
+    if verbose then putStrLn (show (filterWeatherForecast "summary" forecast)) else putStr ""
+    let filtered = filterWeatherForecast "summary" forecast
+    
+    if verbose then putStrLn "Parsing weather data..." else putStr ""
+    if verbose then putStrLn (show (parseWeatherForecast filtered)) else putStr ""
+    let parsed = parseWeatherForecast filtered
+    --saveWeatherForecast parsed "forecast.json"
+
+    if verbose then putStrLn "Constructing forecast..." else putStr ""
+    if verbose then putStrLn (show (map snd (getAllMatching "summary" (map extractKeyValue parsed)))) else putStr ""
+    let summary = map snd (getAllMatching "summary" (map extractKeyValue parsed))
+    --saveWeatherForecast summary "summary.json"
+    return summary
+
+parseWeatherForecast :: [String] -> [String]
+parseWeatherForecast forecast = (removeEmpty (removeBrackets (map trimAll forecast)))
+
+filterWeatherForecast :: String -> [String] -> [String]
+filterWeatherForecast key forecast = filter (\e -> isInfixOf key e) forecast
+
+isPrefix :: String -> String -> Bool
+isPrefix "" _ = True
+isPrefix prefix s = if (head prefix) /= (head s) then False else (isPrefix (tail prefix) (tail s))
 
 findSection :: String -> String -> String -> Char -> String
 findSection sectionName text delimiter openingBracketType = findSectionHelper ((surroundInQuotes sectionName) ++ delimiter ++ [openingBracketType]) text ""
 
+findSectionHelper :: String -> String -> String -> String
 findSectionHelper sectionName text search
     | text == "" = ""
     | (length search) == (length sectionName) = if (search == sectionName) then text else (findSectionHelper sectionName (tail text) ((tail search) ++ [(head text)]))
@@ -36,6 +73,7 @@ extractSection sectionName text = extractSectionParameterized sectionName text "
 extractSectionParameterized :: String -> String -> String -> Char -> Char -> String
 extractSectionParameterized sectionName text delimiter openingBracketType closingBracketType = extractSectionHelper (findSection sectionName text delimiter openingBracketType) openingBracketType closingBracketType 1 ""
 
+extractSectionHelper :: (Eq a, Num a) => String -> Char -> Char -> a -> String -> String
 extractSectionHelper text openingBracketType closingBracketType bracketCount extracted
     | bracketCount == 0 = extracted
     | (length text == 0) = ""
@@ -56,7 +94,7 @@ getBlock :: String -> String
 getBlock text = extractSectionParameterized "" text "" '{' '}'
 
 getLines :: String -> [String]
-getLines text = getLinesHelper text ""
+getLines text = lines text
 
 getLinesHelper :: String -> String -> [String]
 getLinesHelper "" line = [line]
@@ -70,17 +108,17 @@ trimFrontWhitespace (' ':remaining) = trimFrontWhitespace remaining
 trimFrontWhitespace ('\t':remaining) = trimFrontWhitespace remaining
 trimFrontWhitespace remaining = remaining
 
---trimIfFront :: String -> (Char -> Bool) -> String
+trimIfFront :: (Char -> Bool) -> String -> String
 trimIfFront predicate "" = ""
 trimIfFront predicate (start:remaining) = if (predicate start) then (trimIfFront predicate remaining) else (start:remaining)
 
--- trimIf :: 
+trimIf :: (Char -> Bool) -> String -> String
 trimIf predicate text = (trimIfEnd predicate (trimIfFront predicate text))
 
---trimIfEnd :: String -> String
+trimIfEnd :: (Char -> Bool) -> String -> String
 trimIfEnd predicate text = trimIfEndHelper predicate text "" ""
 
--- trimEndHelper ::
+trimIfEndHelper :: (Char -> Bool) -> String -> String -> String -> String
 trimIfEndHelper predicate text portion trimmed
     | (text == "") = trimmed
     | (predicate (head text)) = trimIfEndHelper predicate (tail text) (portion ++ [(head text)]) trimmed
@@ -89,7 +127,7 @@ trimIfEndHelper predicate text portion trimmed
 trimEndWhitespace :: String -> String
 trimEndWhitespace text = trimEndHelper text "" ""
 
--- trimEndHelper ::
+trimEndHelper :: String -> String -> String -> String
 trimEndHelper text portion trimmed
     | (text == "") = trimmed
     | (head text == ' ') = trimEndHelper (tail text) (portion ++ " ") trimmed
@@ -150,22 +188,17 @@ removeQuotes = trimIf (\c -> c == '\"')
 removeEmpty :: [String] -> [String]
 removeEmpty = filter (\e -> (length e) > 0)
 
---removeBrackets :: [String] -> [String]
+removeBrackets :: [String] -> [String]
 removeBrackets = filter (\e -> e /= "{" && e /= "}" && e /= "[" && e /= "]" && e /= "(" && e /= ")")
 
 extractKeyValue :: String -> (String, String)
 extractKeyValue pairString = ((extractKey pairString), (extractValue pairString))
 
+extractKey :: String -> String
 extractKey pairString = trimAll (foldr (\c acc -> if (c == ':') then "" else c:acc) "" pairString)
 
+extractValue :: String -> String
 extractValue pairString = if (trimmed == "") then "" else (trimAll (tail trimmed)) where trimmed = (trimIfFront (\c -> c /= ':') pairString)
 
+getAllMatching :: Eq a => a -> [(a, t)] -> [(a, t)]
 getAllMatching key = filter (\(k, v) -> k == key)
-
---getEntry key mapping = 
-
---getKeys keys mapping
-
---getKey key mapping
-
---data Mapping = Empty | (Key, Value)
