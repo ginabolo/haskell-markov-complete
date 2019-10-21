@@ -1,4 +1,5 @@
 module Request where
+import Markov
 import Network.HTTP
 import Network.Stream
 import Control.Concurrent
