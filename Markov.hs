@@ -27,7 +27,7 @@ type TransitionTable f = (State -> State -> f)
 
 
 -- Build markov chain, then predict the next state
-markov :: [Observation] -> IO String
+markov :: [Observation] -> IO Observable
 markov lst = do
     rand <- (randomIO :: IO Double) 
     return (predictSample rand (computeTT states) (last states) states)
