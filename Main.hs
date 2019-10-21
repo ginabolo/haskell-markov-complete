@@ -5,8 +5,8 @@ import Request
 displayRawWeatherData :: IO()
 displayRawWeatherData = do
     putStrLn "Raw Weather Data: "
-    data <- getRawWeatherData
-    putStrLn data
+    dataW <- getRawWeatherData
+    putStrLn dataW
 
 displayInfinitePrediction :: IO()
 displayInfinitePrediction = do
@@ -30,10 +30,10 @@ displayAllDaysWithAttribute :: IO()
 displayAllDaysWithAttribute = do
     putStrLn "Enter a weather attribute: "
     attribute <- getLine
-    data <- getRawWeatherData
+    dataW <- getRawWeatherData
     putStrLn "All data for <" ++ attribute ++ ">: " 
-    putStrLn (getAllMatching (extractKeyValue data))
+    putStrLn (getAllMatching (extractKeyValue dataW))
 
-nextPrediction data = markov data ++ (nextPrediction (markov data))
-predictWeather data iteration | iteration > 0 = markov data ++ (predictWeather (markov data) (iteration - 1))
-                              | otherwise = data
+nextPrediction dataW = markov dataW ++ (nextPrediction (markov dataW))
+predictWeather dataW iteration | iteration > 0 = markov dataW ++ (predictWeather (markov dataW) (iteration - 1))
+                               | otherwise = dataW
