@@ -1,6 +1,8 @@
 module Main where
 import Markov
 import Request
+import Data.List
+import Data.Char
 
 --displayRawWeatherData :: IO()
 displayRawWeatherData = do
@@ -9,21 +11,28 @@ displayRawWeatherData = do
     putStrLn dataW
 
 --displayInfinitePrediction :: IO()
-displayInfinitePrediction = do
-    putStrLn "Welcome to the CPSC 312 Weather Predictor!"
+displayNextPrediction = do
+    putStrLn "Welcome to CPSC 312 Weather Predictor!"
     weatherSummary <- getWeatherForecastSummaryVerbose False
-    putStrLn "In the last 50 hours, the weather has been: "
+    putStrLn "Today's weather has been: "
     putStrLn (show weatherSummary)
-    putStrLn "Infinite markov chain prediction with past 50 hours of data: "
+    putStrLn "Tommorow's weather will be: "
     next <- nextPrediction weatherSummary
     putStrLn next
+    if ((queryWeather weatherSummary "rain") > (queryWeather weatherSummary "sunny")) then putStrLn "Its going to be rainy out. Make sure to bring an umbrella!" else putStrLn ""
+    if ((queryWeather weatherSummary "cloudy") > (queryWeather weatherSummary "sunny")) then putStrLn "Its going to be cloudy out, no need for sunscreen!" else putStrLn "Its going to be sunny out, bring some sunscreen!"
+
+displayWeeklyPrediction = do
+    putStrLn ""
+
+queryWeather weatherSummary attr = (length (filter (\e -> isInfixOf attr e) weatherSummary))
 
 nextPrediction dataW = do
     next <- (markov dataW)
     return next
 
-inifinitePrediction dataW = do
+infinitePrediction dataW = do
     next <- markov dataW
-    inifinitePrediction (dataW ++ [next])
+    infinitePrediction (dataW ++ [next])
 
 main = do putStrLn ""
