@@ -5,6 +5,9 @@ import Network.Stream
 import Control.Concurrent
 import Data.List
 
+-- To get raw weather data from the API, call getRawWeatherForecast
+-- To get the trimmed JSON data of the weather, call getWeatherForecast
+
 getRawWeatherForecast :: IO String
 getRawWeatherForecast = do
     response <- simpleHTTP (getRequest "http://www.johnturkson.com/weather/get")
