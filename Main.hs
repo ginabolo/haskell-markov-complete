@@ -5,8 +5,9 @@ import Data.List
 import Data.Char
 import Data.Time
 import System.Directory
+import Text.Read
 
-
+displayRawWeatherData :: String -> IO()
 displayRawWeatherData weatherData = do
     putStrLn "Raw Weather Data: "
     putStrLn weatherData
@@ -41,13 +42,16 @@ main = do
     putStrLn "================================================="
     option <- getLine
     weatherSummary <- getWeatherForecastSummaryVerbose False
-    case (read option) of 
-        0 -> getRawWeatherData
-        1 -> putStrLn (show weatherSummary)
-        2 -> displayNextPrediction
-        3 -> displayWeeklyPrediction
-        4 -> infinitePrediction
-        _ -> error "Error on parsing input!"
+    case (readMaybe option) of 
+        (Just n) ->
+            case n of 
+                0 -> getRawWeatherData
+                1 -> putStrLn (show weatherSummary)
+                2 -> displayNextPrediction
+                3 -> displayWeeklyPrediction
+                4 -> getInfinitePrediction weatherSummary
+                _ -> putStrLn "Error on parsing input!"
+        Nothing -> putStrLn "Error on parsing input!"
     putStrLn "Done! \n"
     main
 
@@ -58,7 +62,7 @@ displayNextPrediction = do
     putStrLn (show weatherSummary)
     putStrLn "Tommorow's weather will be: "
     next <- nextPrediction weatherSummary
-    putStrLn next
+    putStrLn ("Prediction: " ++ next)
     if (isInfixOf "rain" next) then putStrLn "Its going to be rainy out. Make sure to bring an umbrella!" else putStrLn ""
     if (isInfixOf "cloudy" next) then putStrLn "Its going to be cloudy out, no need for sunscreen!" else putStrLn ""
     if (isInfixOf "sunny" next) then putStrLn "Its going to be sunny out, bring some sunscreen!" else putStrLn ""
@@ -72,6 +76,7 @@ nextPrediction dataW = do
     next <- (markov dataW)
     return next
 
-infinitePrediction dataW = do
+getInfinitePrediction dataW = do
     next <- markov dataW
-    infinitePrediction (dataW ++ [next])
+    putStrLn next
+    getInfinitePrediction (dataW ++ [next])
