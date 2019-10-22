@@ -5,6 +5,7 @@ import Data.List
 import Data.Char
 import Data.Time.Clock
 import Data.Time.Calendar
+import Data.Time.LocalTime
 import System.Directory
 import Text.Read
 
@@ -72,7 +73,7 @@ displayWeeklyPrediction = do
     putStrLn "The weekly weather forecast has been: "
     weatherSummary <- getWeatherForecastSummaryVerbose False
     putStrLn (show weatherSummary)
-    currentTime <- getCurrentTime
+    now <- getCurrentTime
     let (y, m, d) = toGregorian (utctDay now)
     putStrLn ("Today is " ++ show d ++ " " ++ show m ++ ", " ++ show y ++ ".") 
     putStrLn "======================= 7-Day Forecast ======================="
