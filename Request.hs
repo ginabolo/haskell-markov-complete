@@ -7,6 +7,8 @@ import Data.List
 
 -- To get raw weather data from the API, call getRawWeatherForecast
 -- To get the trimmed JSON data of the weather, call getWeatherForecast
+-- To get only formatted data, call getWeatherForecastOnly
+-- To see the data processing steps, call getWeatherForecastSummary
 
 getRawWeatherForecast :: IO String
 getRawWeatherForecast = do
@@ -18,22 +20,22 @@ getRawWeatherForecast = do
 getWeatherForecast :: IO [String]
 getWeatherForecast = do
     forecast <- getRawWeatherForecast
-    return (parseWeatherForecast (getLines (extractSection "hourly" forecast)))
+    return (parseWeatherForecast (getLines (extractSection "daily" forecast)))
 
 getWeatherForecastSummary :: IO [String]
 getWeatherForecastSummary = getWeatherForecastSummaryVerbose True
 
-getWeatherForecastQuick :: IO [String]
-getWeatherForecastQuick = do
+getWeatherForecastOnly :: IO [String]
+getWeatherForecastOnly = do
     response <- getRawWeatherForecast
-    return (map snd (getAllMatching "summary" (map extractKeyValue (parseWeatherForecast (filterWeatherForecast "summary" (getLines (extractSection "hourly" response)))))))
+    return (map snd (getAllMatching "summary" (map extractKeyValue (parseWeatherForecast (filterWeatherForecast "summary" (getLines (extractSection "daily" response)))))))
 
 getWeatherForecastSummaryVerbose :: Bool -> IO [String]
 getWeatherForecastSummaryVerbose verbose = do
     if verbose then putStrLn "Getting weather data from API..." else putStr ""
     --putStrLn "Getting weather data from API..."
     response <- getRawWeatherForecast
-    let forecast = getLines (extractSection "hourly" response)
+    let forecast = getLines (extractSection "daily" response)
     --saveWeatherForecast forecast "raw.json"
     if verbose then putStrLn (show forecast) else putStr ""
     
