@@ -3,7 +3,8 @@ import Markov
 import Request
 import Data.List
 import Data.Char
-import Data.Time
+import Data.Time.Clock
+import Data.Time.Calendar
 import System.Directory
 import Text.Read
 
@@ -71,6 +72,25 @@ displayWeeklyPrediction = do
     putStrLn "The weekly weather forecast has been: "
     weatherSummary <- getWeatherForecastSummaryVerbose False
     putStrLn (show weatherSummary)
+    currentTime <- getCurrentTime
+    let (y, m, d) = toGregorian (utctDay now)
+    putStrLn ("Today is " ++ show d ++ " " ++ show m ++ ", " ++ show y ++ ".") 
+    putStrLn "======================= 7-Day Forecast ======================="
+    dayOne <- nextPrediction weatherSummary
+    dayTwo <- nextPrediction (weatherSummary ++ [dayOne])
+    dayThree <- nextPrediction (weatherSummary ++ [dayTwo])
+    dayFour <- nextPrediction (weatherSummary ++ [dayThree])
+    dayFive <- nextPrediction (weatherSummary ++ [dayFour])
+    daySix <- nextPrediction (weatherSummary ++ [dayFive])
+    daySeven <- nextPrediction (weatherSummary ++ [daySix])
+    putStrLn ("Prediction for 1st day: " ++ dayOne)
+    putStrLn ("Prediction for 2nd day: " ++ dayTwo)
+    putStrLn ("Prediction for 3rd day: " ++ dayThree)
+    putStrLn ("Prediction for 4th day: " ++ dayFour)
+    putStrLn ("Prediction for 5th day: " ++ dayFive)
+    putStrLn ("Prediction for 6th day: " ++ daySix)
+    putStrLn ("Prediction for 7th day: " ++ daySeven)
+    putStrLn "========================================================"
 
 nextPrediction dataW = do
     next <- (markov dataW)
