@@ -12,8 +12,8 @@ type Observation = [Char]
 -- Choose n = 3
 data State = StateV {
 one :: Observation,
-two :: Observation ,
-three :: Observation
+two :: Observation
+-- three :: Observation
 }
     deriving (Ord, Eq, Show)
 
@@ -39,7 +39,8 @@ markov lst = do
 
 observationsToStates :: [Observation] -> [State]
 observationsToStates [] = []
-observationsToStates (f:s:t:tail) = StateV f s t : (observationsToStates (s:t:tail))
+observationsToStates (f:s:tail) = StateV f s : (observationsToStates (s:tail))
+-- observationsToStates (f:s:t:tail) = StateV f s t : (observationsToStates (s:t:tail))
 -- if there aren't enough to make a full new state
 observationsToStates lst = []
 
@@ -78,15 +79,15 @@ computeTThelper lst numDatapoints numTransitions fromState toState = numTransiti
 -- Unroll markov chain: TransitionTable -> last State in sequence of Observations -> possible states -> predicted Observation
 -- Select the most likely outcome
 predictMax :: (Ord f, Fractional f) => TransitionTable f -> State -> [State] -> Observation
-predictMax table s possibleStates = three (state (foldl (\ acc outcome -> max acc outcome) (OutcomeV 0 (head possibleStates)) (probOfStates (table s) possibleStates)))
+predictMax table s possibleStates = two (state (foldl (\ acc outcome -> max acc outcome) (OutcomeV 0 (head possibleStates)) (probOfStates (table s) possibleStates)))
 
 
 predictSample :: (Ord f, Fractional f) => f -> TransitionTable f -> State -> [State] -> Observation
 -- Sample from outcome probability distribution
 predictSample rand table s possibleStates = 
     if (length filteredDistribution) > 0
-        then three (state (sample rand (sort filteredDistribution)))
-        else three (state (head distribution)) 
+        then two (state (sample rand (sort filteredDistribution)))
+        else two (state (head distribution)) 
         -- if the last state has never been seen, pick a random one
     where 
         distribution = (probOfStates (table s) possibleStates)
@@ -123,24 +124,24 @@ test msg a b
 
 
 -- Tests:
-run_tests = do
-    putStrLn (test "observationsToStates" (observationsToStates ["sunny", "cloudy", "rain", "snow", "sunny", "cloudy", "rain", "snow" ]) 
-        [(StateV "sunny" "cloudy" "rain"), (StateV "cloudy" "rain" "snow"), (StateV "rain" "snow" "sunny"), (StateV "snow" "sunny" "cloudy"), 
-        (StateV "sunny" "cloudy" "rain"), (StateV "cloudy" "rain" "snow") ])
+-- run_tests = do
+--     putStrLn (test "observationsToStates" (observationsToStates ["sunny", "cloudy", "rain", "snow", "sunny", "cloudy", "rain", "snow" ]) 
+--         [(StateV "sunny" "cloudy" "rain"), (StateV "cloudy" "rain" "snow"), (StateV "rain" "snow" "sunny"), (StateV "snow" "sunny" "cloudy"), 
+--         (StateV "sunny" "cloudy" "rain"), (StateV "cloudy" "rain" "snow") ])
 
-    putStrLn (test "compute transition table sunny" ((computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
-        (StateV "sunny" "sunny" "sunny") (StateV "sunny" "sunny" "sunny")) (2/3))
+--     putStrLn (test "compute transition table sunny" ((computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
+--         (StateV "sunny" "sunny" "sunny") (StateV "sunny" "sunny" "sunny")) (2/3))
 
-    putStrLn (test "compute transition table cloudy" ((computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
-        (StateV "sunny" "sunny" "sunny") (StateV "sunny" "sunny" "cloudy")) (1/3))
+--     putStrLn (test "compute transition table cloudy" ((computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
+--         (StateV "sunny" "sunny" "sunny") (StateV "sunny" "sunny" "cloudy")) (1/3))
 
-    putStrLn (test "probOfStates" (probOfStates (computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ] (StateV "sunny" "sunny" "sunny"))
-        [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy")]) 
-        [(OutcomeV (2/3) (StateV "sunny" "sunny" "sunny")), (OutcomeV (1/3) (StateV "sunny" "sunny" "cloudy"))])
+--     putStrLn (test "probOfStates" (probOfStates (computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ] (StateV "sunny" "sunny" "sunny"))
+--         [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy")]) 
+--         [(OutcomeV (2/3) (StateV "sunny" "sunny" "sunny")), (OutcomeV (1/3) (StateV "sunny" "sunny" "cloudy"))])
 
-    putStrLn (test "predict" (predictMax (computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
-        (StateV "sunny" "sunny" "sunny") [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy")])
-        "sunny")
+--     putStrLn (test "predict" (predictMax (computeTT [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy") ])
+--         (StateV "sunny" "sunny" "sunny") [(StateV "sunny" "sunny" "sunny"), (StateV "sunny" "sunny" "cloudy")])
+--         "sunny")
 
     -- markov ["sunny", "cloudy", "cloudy", "cloudy", "sunny", "sunny", "sunny", "cloudy", "cloudy", "sunny", "cloudy", "cloudy"]
     -- 50/50 chance of being sunny or cloudy 
