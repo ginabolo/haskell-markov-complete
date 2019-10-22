@@ -75,7 +75,7 @@ displayWeeklyPrediction = do
     putStrLn (show weatherSummary)
     now <- getCurrentTime
     let (y, m, d) = toGregorian (utctDay now)
-    putStrLn ("Today is " ++ show d ++ " " ++ show m ++ ", " ++ show y ++ ".") 
+    putStrLn ("Today is " ++ show m ++ "-" ++ show d ++ "-" ++ show y) 
     putStrLn "======================= 7-Day Forecast ======================="
     dayOne <- nextPrediction weatherSummary
     dayTwo <- nextPrediction (weatherSummary ++ [dayOne])
